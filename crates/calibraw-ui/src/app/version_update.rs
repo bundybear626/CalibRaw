@@ -2,8 +2,8 @@ use super::*;
 use crate::i18n::{tr, tr_fmt};
 
 const GITHUB_LATEST_RELEASE_API: &str =
-    "https://api.github.com/repos/Duecki1/CalibRaw/releases/latest";
-const GITHUB_RELEASE_URL_PREFIX: &str = "https://github.com/Duecki1/CalibRaw/releases/";
+    "https://api.github.com/repos/bundybear626/CalibRaw/releases/latest";
+const GITHUB_RELEASE_URL_PREFIX: &str = "https://github.com/bundybear626/CalibRaw/releases/";
 const GITHUB_PRIVACY_URL: &str =
     "https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement";
 const MAX_RELEASE_RESPONSE_BYTES: u64 = 64 * 1024;
