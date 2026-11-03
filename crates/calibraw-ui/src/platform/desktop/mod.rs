@@ -13,19 +13,33 @@ pub(crate) use entry::main;
 
 use super::service::Platform;
 use super::PlatformCaps;
+use std::ffi::OsString;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 /// Set in a process started by `restart_after_gpu_loss_command`, so a GPU
 /// that fails again right away does not restart CalibRaw in a loop.
 const RESTARTED_AFTER_GPU_LOSS: &str = "CALIBRAW_RESTARTED_AFTER_GPU_LOSS";
 
-pub(crate) struct DesktopPlatform;
+pub(crate) struct DesktopPlatform {
+    launch_path: Mutex<Option<PathBuf>>,
+}
 
 impl DesktopPlatform {
     pub(crate) fn new() -> Arc<Self> {
-        Arc::new(Self)
+        Arc::new(Self {
+            launch_path: Mutex::new(launch_path_from_args(std::env::args_os().skip(1))),
+        })
     }
+}
+
+/// The first argument that names an existing file; options starting with
+/// `--` are skipped.
+fn launch_path_from_args(args: impl IntoIterator<Item = OsString>) -> Option<PathBuf> {
+    args.into_iter()
+        .filter(|arg| !arg.to_string_lossy().starts_with("--"))
+        .map(PathBuf::from)
+        .find(|path| path.is_file())
 }
 
 impl Platform for DesktopPlatform {
@@ -46,6 +60,13 @@ impl Platform for DesktopPlatform {
     #[cfg(target_os = "macos")]
     fn take_settings_request(&self) -> bool {
         macos_menu::take_settings_request()
+    }
+
+    fn take_launch_path(&self) -> Option<PathBuf> {
+        self.launch_path
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .take()
     }
 
     fn performance_settings_path(&self) -> Result<Option<PathBuf>, String> {
@@ -145,4 +166,29 @@ pub(in crate::platform) fn performance_settings_path() -> Option<PathBuf> {
     let base: Option<PathBuf> = None;
 
     base.map(|base| base.join("calibraw").join("performance.json"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::launch_path_from_args;
+    use std::ffi::OsString;
+
+    #[test]
+    fn launch_path_is_the_first_existing_file_that_is_not_an_option() {
+        let photo = tempfile::NamedTempFile::new().unwrap();
+        let folder = tempfile::tempdir().unwrap();
+        let args = [
+            OsString::from("--some-option"),
+            folder.path().as_os_str().to_owned(),
+            OsString::from("missing-photo.orf"),
+            photo.path().as_os_str().to_owned(),
+        ];
+        assert_eq!(launch_path_from_args(args).as_deref(), Some(photo.path()));
+    }
+
+    #[test]
+    fn no_launch_path_without_a_file_argument() {
+        assert_eq!(launch_path_from_args([OsString::from("--flag")]), None);
+        assert_eq!(launch_path_from_args(Vec::<OsString>::new()), None);
+    }
 }

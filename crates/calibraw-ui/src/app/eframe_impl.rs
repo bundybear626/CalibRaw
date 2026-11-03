@@ -324,6 +324,9 @@ impl eframe::App for CalibRawApp {
         }
 
         self.poll_desktop_picker(frame);
+        if let Some(path) = self.platform.take_launch_path() {
+            self.open_path(path, frame);
+        }
         self.poll_look_lut_table();
         self.poll_watermark();
         if caps.is_mobile() {

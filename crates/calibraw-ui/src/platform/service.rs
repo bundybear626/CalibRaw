@@ -166,6 +166,11 @@ pub(crate) trait Platform: Send + Sync {
     fn take_settings_request(&self) -> bool {
         false
     }
+    /// A photo named on the command line (for example by a photo manager's
+    /// "Open With"), returned once so the editor can open it at start.
+    fn take_launch_path(&self) -> Option<PathBuf> {
+        None
+    }
     /// Left, top, right and bottom system-bar insets in points.
     fn system_bar_insets_points(&self, _pixels_per_point: f32) -> [f32; 4] {
         [0.0; 4]
